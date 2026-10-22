@@ -1,0 +1,161 @@
+<!--
+  Starting point for components/AppSidebar.vue (rename, drop the .template suffix).
+  Replace NAV_ITEMS with the app's real routes and label sources (i18n keys if the app has i18n).
+  Place the existing language switcher / profile components in the footer slot.
+-->
+<template>
+  <aside class="sidebar" :class="{ open }">
+    <div class="sidebar-brand">
+      <span class="brand-name">{{ brand }}</span>
+      <span v-if="subtitle" class="brand-subtitle">{{ subtitle }}</span>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Main">
+      <router-link
+        v-for="item in items"
+        :key="item.to"
+        :to="item.to"
+        class="nav-item"
+        :aria-current="isActive(item.to) ? 'page' : undefined"
+        :class="{ active: isActive(item.to) }"
+        @click="$emit('close')"
+      >
+        <span class="nav-label">{{ item.label }}</span>
+      </router-link>
+    </nav>
+
+    <div class="sidebar-footer">
+      <slot name="footer" />
+    </div>
+  </aside>
+  <div v-if="open" class="sidebar-backdrop" @click="$emit('close')"></div>
+</template>
+
+<script>
+import { onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
+
+export default {
+  name: 'AppSidebar',
+  props: {
+    open: { type: Boolean, default: false },
+    brand: { type: String, required: true },
+    subtitle: { type: String, default: '' },
+    // [{ to: '/', label: 'Overview' }, ...]
+    items: { type: Array, required: true }
+  },
+  emits: ['close'],
+  setup(props, { emit }) {
+    const route = useRoute()
+
+    // '/' must match exactly, otherwise it is active on every route
+    const isActive = (to) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
+
+    const onKeydown = (e) => {
+      if (e.key === 'Escape' && props.open) emit('close')
+    }
+    onMounted(() => window.addEventListener('keydown', onKeydown))
+    onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+
+    return { isActive }
+  }
+}
+</script>
+
+<style scoped>
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  z-index: 100;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-brand {
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.brand-name {
+  color: var(--sidebar-text-active);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.brand-subtitle {
+  color: var(--sidebar-text);
+  font-size: var(--text-xs);
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--sidebar-text);
+  font-size: var(--text-base);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.nav-item:hover {
+  background: var(--sidebar-item-hover);
+  color: var(--sidebar-text-active);
+}
+
+.nav-item.active {
+  background: var(--sidebar-item-active);
+  color: var(--sidebar-text-active);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sidebar-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--sidebar-item-hover);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 90;
+  }
+}
+</style>
